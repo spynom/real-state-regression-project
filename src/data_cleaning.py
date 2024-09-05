@@ -1,15 +1,16 @@
 import os
 import pandas as pd
 import numpy as np
+from sklearn.model_selection import train_test_split
 
 def get_data(*args: str) -> pd.DataFrame:
     # Join the arguments into a file path
-    path = os.path.join(*args)
+    path:str = os.path.join(*args)
     # Read and return the CSV file as a DataFrame
     return pd.read_csv(path)
 
 # loading data
-flat_data=get_data("data","raw""scrapped_data.csv")
+flat_data=get_data("data","raw","scrapped_data.csv")
 
 #defining function to clean data
 def data_clean(df:pd.DataFrame)->pd.DataFrame:
@@ -87,13 +88,35 @@ def data_clean(df:pd.DataFrame)->pd.DataFrame:
 
 clean_data=data_clean(flat_data)
 
-def save_data(*args: str,dataset:pd.DataFrame) -> pd.DataFrame:
-    # Join the arguments into a file path
-    path = os.path.join(*args)
-    # saving the dataset as a CSV file
-    dataset.to_csv(path,index=False)
 
-save_data("data","clean","clean_dataset.csv",dataset=clean_data)
+def save_data(dir_: list, dataset: pd.DataFrame, train_size: float = 0.8, test_size: float = 0.1) -> None:
+    # Ensure the directory exists
+    path = os.path.join(*dir_)
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    # Separate features and target variable
+    X = dataset.drop(columns=["price_in_lakh"])
+    y = dataset["price_in_lakh"]
+
+    # Check if train_size and test_size are valid
+    if train_size + test_size >= 1:
+        raise ValueError("train_size and test_size should be such that train_size + test_size < 1")
+
+    # Split data into training and test sets
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, train_size=train_size)
+
+    # Calculate validation size
+    val_size = 1 - train_size - test_size
+    X_test, X_val, y_test, y_val = train_test_split(X_temp, y_temp, train_size=(test_size / (test_size + val_size)))
+
+    # Save data to CSV files
+    pd.concat([X_train, y_train], axis=1).to_csv(os.path.join(path, "train.csv"), index=False)
+    pd.concat([X_test, y_test], axis=1).to_csv(os.path.join(path, "test.csv"), index=False)
+    pd.concat([X_val, y_val], axis=1).to_csv(os.path.join(path, "val.csv"), index=False)
+
+
+save_data(["data","clean"],dataset=clean_data)
 
 
 
