@@ -78,10 +78,10 @@ def data_clean(df:pd.DataFrame)->pd.DataFrame:
 
 
     df_=(
-        pd.concat([df_,temp1,temp2],axis=1)
+        pd.concat([df_,temp1,temp2],axis=1).rename(columns={"Status.1":"Furnishing Status","Status":"Property Status"})
         .rename(columns=str.lower)
         .drop(columns=["price","name","carpet area","age of property","age of property.1","additional rooms","additional rooms.1","price negotiable","price negotiable.1","balconies.1","new/resale",
-                            "new/resale.1","link","name","1","2"]) 
+                            "new/resale.1","link","name","1","2","floor"])
     )
     df_.columns = [col.replace(' ', '_') for col in df_.columns]
     return df_
