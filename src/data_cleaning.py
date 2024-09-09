@@ -10,7 +10,7 @@ def get_data(*args: str) -> pd.DataFrame:
     return pd.read_csv(path)
 
 # loading data
-flat_data=get_data("data","raw","scrapped_data.csv")
+flat_data=get_data("/home/spynom/PycharmProjects/real-state-regression-project","data","raw","scrapped_data.csv")
 
 #defining function to clean data
 def data_clean(df:pd.DataFrame)->pd.DataFrame:
@@ -22,10 +22,10 @@ def data_clean(df:pd.DataFrame)->pd.DataFrame:
             type1=df["name"].str.split(" ",n=1).str.get(1).str.extract(r"([A-Za-z]+)"),
             type2=df["name"].str.split(" ",n=1).str.get(1).str.replace(r"^([A-Za-z]+\s)","",regex=True),
             size=df["size"].str.replace(",","").str.extract(r"(\d+)"),
-            address=(df.address.str.lower().str.replace(r'[A-Za-z0-9\s]*?4 greater noida wes+[A-Za-z0-9\s]*',"4 greater noida west",regex=True)
+            address=(flat_data.address.str.lower().str.replace(r'[A-Za-z0-9\s]*?4 greater noida wes+[A-Za-z0-9\s]*',"4 greater noida west",regex=True)
                     .str.replace(r'[A-Za-z0-9\s]*?(extension|ext)[A-Za-z0-9\s]*',"extension, noida",regex=True)
                     .str.replace(r'[A-Za-z0-9\s]*?ambedkar city[A-Za-z0-9\s]*',"ambedkar city, noida",regex=True)
-                    .str.replace(r'[A-Za-z0-9\s]*?yamuna expressway[A-Za-z0-9\s]*',"yamuna expressway, noida",regex=True)
+                    .str.replace(r'[A-Za-z0-9\s]*?yamuna express[A-Za-z0-9\s]*',"yamuna expressway, noida",regex=True)
                     .str.replace("surajpur site 4, noida","surajpur site 4, greater noida")
                     .str.replace("knowledge park 3, noida","knowledge park 3, greater noida")
                     .str.replace("sikandarpur village, noida","sector 87, noida")
@@ -36,17 +36,31 @@ def data_clean(df:pd.DataFrame)->pd.DataFrame:
                     .str.replace("home and soul f premiereyeida, noida","jal vayu vihar, noida")
                     .str.replace("apte gra indraprastha phase 2shramik kunj, noida","sector 93, noida")
                     .str.replace("apte gra indraprastha phase 2shramik kunj, noida","sector 93, noida")
-                    .str.replace(r'[0-9a-z ]+sector',"sector" ,regex=True).str.replace("-",'')),
+                    .str.replace(r'[0-9a-z ]+sector',"sector" ,regex=True).str.replace("-",'')
+                    .str.replace("noida, ",'')
+                    .str.replace(r"sector[\s0]*", "sector ",regex=True)
+                    .str.replace(r"[A-Za-z0-9\s,]*greater noida[A-Za-z0-9\s,]*","greater-noida",regex=True)
+                    .str.replace(r"[,]* noida",", noida",regex=True)
+                    .str.replace('dream house sr construction dream house sector 73, noida',"sector 73, noida")
+                    .str.replace(r"sector 93[\sa-z]+, noida","sector 93, noida",regex=True)
+                    .replace("sector 143b, noida","sector 143, noida")
+                    .replace('sector 16b, noida','sector 16, noida')
+                    .replace('sector 140a, noida','sector 140, noida')
+                    .replace('sector 15a, noida','sector 15, noida')
+                    .replace('sector 25a, noida','sector 25, noida')
+                    .replace("greater-noida", "greater noida")
+
+                        ),
             price_in_lakh=((df["price"].str.replace("EMI","").str.extract(r"(Cr|L)").replace({"L":"1","Cr":"100"}).astype(float))*
                             (df["price"].str.replace("EMI","").str.extract(r"([0-9.]+)").astype(float))),
             rate= pd.to_numeric(  df["rate"].str.extract(r"([0-9,]+)").loc[:,0].str.replace(",","")),
             carpet_area= pd.to_numeric(  df["Carpet area"].str.extract(r"([0-9,]+)").loc[:,0].str.replace(",","")),
             age_of_property=(df["Age of Property"].fillna("")+df["Age of Property.1"].fillna("")).str.extract(r"([0-9]+ y)").loc[:,0].str.replace(" y",""),
-            floor=pd.to_numeric(df["Floor"].str.replace("Gr","0").str.extract(r"(\d+)").iloc[:,0]),
+            floor_=pd.to_numeric(df["Floor"].str.replace("Gr","0").str.extract(r"(\d+)").iloc[:,0]),
             total_floor=pd.to_numeric(df["Floor"].str.extract(r"(\s\d+)").iloc[:,0]),
             additional_rooms=pd.to_numeric(((df["Additional Rooms"].fillna(""))+(df["Additional Rooms.1"].fillna(""))).str.replace(r"\([a-z\s,]+\)","",regex=True).str.extract(r"(\d+)").loc[:,0]),
             price_negotiable=(df["Price Negotiable"].fillna("")+df["Price Negotiable.1"].fillna("")),
-            balconies=(df["Balconies"].fillna(0)+df["Balconies.1"].fillna(0)).replace(0,np.nan),
+            balconies_=(df["Balconies"].fillna(0)+df["Balconies.1"].fillna(0)).replace(0,np.nan),
             type_of_sale=(df["New/Resale"].fillna(""))+(df["New/Resale.1"].fillna("")),
             booking_amount_in_lakh =(pd.to_numeric(df["Booking Amount"].str.replace(",",""))/100000)
             )
@@ -81,7 +95,7 @@ def data_clean(df:pd.DataFrame)->pd.DataFrame:
         pd.concat([df_,temp1,temp2],axis=1).rename(columns={"Status.1":"Furnishing Status","Status":"Property Status"})
         .rename(columns=str.lower)
         .drop(columns=["price","name","carpet area","age of property","age of property.1","additional rooms","additional rooms.1","price negotiable","price negotiable.1","balconies.1","new/resale",
-                            "new/resale.1","link","name","1","2","floor"])
+                       "booking amount", "new/resale.1","link","name","1","2","balconies.1","floor","balconies"])
     )
     df_.columns = [col.replace(' ', '_') for col in df_.columns]
     return df_
@@ -116,7 +130,7 @@ def save_data(dir_: list, dataset: pd.DataFrame, train_size: float = 0.8, test_s
     pd.concat([X_val, y_val], axis=1).to_csv(os.path.join(path, "val.csv"), index=False)
 
 
-save_data(["data","clean"],dataset=clean_data)
+save_data(["/home/spynom/PycharmProjects/real-state-regression-project","data","clean"],dataset=clean_data)
 
 
 
